@@ -1,35 +1,59 @@
 import tkinter as tk
-from tkinter import messagebox
 
 class Interface:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Model Coefficient Input")
+        self.root.title("Set Parameters")
+        self.root.geometry("400x300+500+200")
 
-        self.coefficients = {}
+        # Створення змінних
+        self.a = tk.DoubleVar(value=1.1)
+        self.b = tk.DoubleVar(value=0.04)
+        self.c = tk.DoubleVar(value=0.4)
+        self.d = tk.DoubleVar(value=0.01)
+        self.D_u = tk.DoubleVar(value=0.1)
+        self.D_v = tk.DoubleVar(value=0.1)
+
+        # Створення віджетів
         self.create_widgets()
 
+        # Запуск головного циклу
+        self.root.mainloop()
+
     def create_widgets(self):
-        labels = ["a", "b", "c", "d", "D_u", "D_v"]
+        # Створення міток і полів введення
+        params = ['a', 'b', 'c', 'd', 'D_u', 'D_v']
+        variables = [self.a, self.b, self.c, self.d, self.D_u, self.D_v]
 
-        for i, label in enumerate(labels):
-            tk.Label(self.root, text=f"{label}: ").grid(row=i, column=0, pady=5, padx=5)
-            entry = tk.Entry(self.root)
-            entry.grid(row=i, column=1, pady=5, padx=5)
-            self.coefficients[label] = entry
+        for i, (param, var) in enumerate(zip(params, variables)):
+            tk.Label(self.root, text=f"{param}:").grid(row=i, column=0, sticky="w", padx=10, pady=5)
+            entry = tk.Entry(self.root, textvariable=var)
+            entry.grid(row=i, column=1, sticky="ew", padx=10, pady=5)
 
-        tk.Button(self.root, text="Confirm", command=self.get_values).grid(row=len(labels), column=0, columnspan=2, pady=10)
+        # Кнопка підтвердження
+        submit_btn = tk.Button(self.root, text="Submit", command=self.submit)
+        submit_btn.grid(row=len(params), column=0, columnspan=2, pady=10)
 
-    def get_values(self):
-        try:
-            values = {key: float(entry.get()) for key, entry in self.coefficients.items()}
-            self.root.destroy()  # Close the window after successful input
-            self.values = values
-        except ValueError:
-            messagebox.showerror("Error", "Please enter valid numbers for all coefficients.")
+        # Адаптивність
+        self.root.grid_rowconfigure(list(range(len(params))), weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+
+    def submit(self):
+        # Отримання значень
+        self.params = {
+            'a': self.a.get(),
+            'b': self.b.get(),
+            'c': self.c.get(),
+            'd': self.d.get(),
+            'D_u': self.D_u.get(),
+            'D_v': self.D_v.get(),
+        }
+        self.root.destroy()
 
     def run(self):
-        self.root.mainloop()
-        return self.values
+        return self.params
 
+interface = Interface()
+coefficients = interface.run()
+print("Received coefficients:", coefficients)
 
