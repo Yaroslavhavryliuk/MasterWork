@@ -1,42 +1,35 @@
 import tkinter as tk
 from tkinter import messagebox
 
+class Interface:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Model Coefficient Input")
 
-def submit():
-    try:
-        a = float(entry_a.get())
-        b = float(entry_b.get())
-        c = float(entry_c.get())
-        d = float(entry_d.get())
-        D_u = float(entry_Du.get())
-        D_v = float(entry_Dv.get())
+        self.coefficients = {}
+        self.create_widgets()
 
-        # Вивід значень або передача в модель
-        print(f"a = {a}, b = {b}, c = {c}, d = {d}, D_u = {D_u}, D_v = {D_v}")
-        messagebox.showinfo("Параметри збережено", "Коефіцієнти успішно задані!")
+    def create_widgets(self):
+        labels = ["a", "b", "c", "d", "D_u", "D_v"]
 
-    except ValueError:
-        messagebox.showerror("Помилка", "Введіть правильні числові значення.")
+        for i, label in enumerate(labels):
+            tk.Label(self.root, text=f"{label}: ").grid(row=i, column=0, pady=5, padx=5)
+            entry = tk.Entry(self.root)
+            entry.grid(row=i, column=1, pady=5, padx=5)
+            self.coefficients[label] = entry
+
+        tk.Button(self.root, text="Confirm", command=self.get_values).grid(row=len(labels), column=0, columnspan=2, pady=10)
+
+    def get_values(self):
+        try:
+            values = {key: float(entry.get()) for key, entry in self.coefficients.items()}
+            self.root.destroy()  # Close the window after successful input
+            self.values = values
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numbers for all coefficients.")
+
+    def run(self):
+        self.root.mainloop()
+        return self.values
 
 
-# Створення вікна
-root = tk.Tk()
-root.title("Параметри моделі Lotka-Volterra")
-
-# Створення полів вводу
-labels = ["Коефіцієнт a:", "Коефіцієнт b:", "Коефіцієнт c:", "Коефіцієнт d:", "Коефіцієнт D_u:", "Коефіцієнт D_v:"]
-entries = []
-
-for i, label in enumerate(labels):
-    tk.Label(root, text=label).grid(row=i, column=0, pady=5, padx=5)
-    entry = tk.Entry(root)
-    entry.grid(row=i, column=1, pady=5, padx=5)
-    entries.append(entry)
-
-entry_a, entry_b, entry_c, entry_d, entry_Du, entry_Dv = entries
-
-# Кнопка підтвердження
-submit_button = tk.Button(root, text="Підтвердити", command=submit)
-submit_button.grid(row=len(labels), column=0, columnspan=2, pady=10)
-
-root.mainloop()

@@ -2,14 +2,20 @@ import deepxde as dde
 import numpy as np
 import matplotlib.pyplot as plt
 from deepxde.backend import tf
+from Interface import Interface
+
+
+interface = Interface()
+coefficients = interface.run()
+print("Received coefficients:", coefficients)
 
 # Параметри моделі
-D_u = 0.1
-D_v = 0.1
-a = 1.1
-b = 0.4
-c = 0.4
-d = 0.1
+D_u = coefficients['D_u']
+D_v = coefficients['D_v']
+a = coefficients['a']
+b = coefficients['b']
+c = coefficients['c']
+d = coefficients['d']
 
 
 def ic_func_u(x):
@@ -61,7 +67,7 @@ net = dde.nn.FNN(layer_size, activation, initializer)
 model = dde.Model(data, net)
 
 model.compile("adam", lr=0.001)
-losshistory, train_state = model.train(iterations=30000)
+losshistory, train_state = model.train(iterations=10000)
 
 # Дотреновування з іншим оптимізатором
 model.compile("L-BFGS")
