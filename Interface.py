@@ -8,9 +8,9 @@ class Interface:
 
         # Створення змінних
         self.a = tk.DoubleVar(value=1.1)
-        self.b = tk.DoubleVar(value=0.04)
+        self.b = tk.DoubleVar(value=0.4)
         self.c = tk.DoubleVar(value=0.4)
-        self.d = tk.DoubleVar(value=0.01)
+        self.d = tk.DoubleVar(value=0.1)
         self.D_u = tk.DoubleVar(value=0.1)
         self.D_v = tk.DoubleVar(value=0.1)
 
@@ -53,7 +53,4 @@ class Interface:
     def run(self):
         return self.params
 
-interface = Interface()
-coefficients = interface.run()
-print("Received coefficients:", coefficients)
 

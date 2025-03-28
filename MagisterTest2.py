@@ -63,6 +63,7 @@ layer_size = [3] + [32] * 3 + [2]
 activation = "tanh"
 initializer = "Glorot uniform"
 net = dde.nn.FNN(layer_size, activation, initializer)
+net.apply_output_transform(lambda x, y: tf.nn.softplus(y))
 
 model = dde.Model(data, net)
 
