@@ -16,14 +16,17 @@ a = coefficients['a']
 b = coefficients['b']
 c = coefficients['c']
 d = coefficients['d']
+initial_u_count = 5000  # Кількість жертв
+initial_v_count = 100   # Кількість хижаків
 
 
 def ic_func_u(x):
-    return np.exp(-5 * ((x[:, 0:1] - 0.5) ** 2 + (x[:, 1:2] - 0.5) ** 2))
+    return np.abs(np.exp(-5 * ((x[:, 0:1] - 0.5) ** 2 + (x[:, 1:2] - 0.5) ** 2))) * 100000
 
 
 def ic_func_v(x):
-    return np.exp(-5 * ((x[:, 0:1] + 0.5) ** 2 + (x[:, 1:2] + 0.5) ** 2))
+    return np.abs(np.exp(-5 * ((x[:, 0:1] + 0.5) ** 2 + (x[:, 1:2] + 0.5) ** 2))) * 100000
+
 
 
 def pde(x, y):
@@ -43,16 +46,17 @@ geom = dde.geometry.Rectangle([-10, -10], [10, 10])
 timedomain = dde.geometry.TimeDomain(0, 24)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-ic_u = dde.icbc.IC(geomtime, ic_func_u, lambda _, on_initial: on_initial, component=0)
-ic_v = dde.icbc.IC(geomtime, ic_func_v, lambda _, on_initial: on_initial, component=1)
+# Функція перевірки умов
+def boundary(x, on_initial):
+    return on_initial
 
-bc_u = dde.icbc.NeumannBC(geomtime, lambda x: 0, lambda _, on_boundary: on_boundary, component=0)
-bc_v = dde.icbc.NeumannBC(geomtime, lambda x: 0, lambda _, on_boundary: on_boundary, component=1)
+bc_u = dde.icbc.IC(geomtime, ic_func_u, boundary, component=0)
+bc_v = dde.icbc.IC(geomtime, ic_func_v, boundary, component=1)
 
 data = dde.data.TimePDE(
     geomtime,
     pde,
-    [ic_u, ic_v, bc_u, bc_v],
+    [bc_u, bc_v],
     num_domain=400,
     num_boundary=80,
     num_initial=40,
@@ -63,7 +67,6 @@ layer_size = [3] + [32] * 3 + [2]
 activation = "tanh"
 initializer = "Glorot uniform"
 net = dde.nn.FNN(layer_size, activation, initializer)
-net.apply_output_transform(lambda x, y: tf.nn.softplus(y))
 
 model = dde.Model(data, net)
 
