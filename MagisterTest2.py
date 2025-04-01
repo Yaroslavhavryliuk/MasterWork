@@ -10,15 +10,16 @@ coefficients = interface.run()
 print("Received coefficients:", coefficients)
 
 # Параметри моделі
-D_u = coefficients['D_u']
-D_v = coefficients['D_v']
-a = coefficients['a']
-b = coefficients['b']
-c = coefficients['c']
-d = coefficients['d']
-initial_u_count = 5000  # Кількість жертв
-initial_v_count = 100   # Кількість хижаків
-
+T = coefficients['T']      # час спостереження
+S = coefficients['S']      # сторона області спостереження
+ru = coefficients['ru']    # коефіцієнт безумовного росту хижака
+rv = coefficients['rv']    # коефіцієнт безумовного росту жертви
+auv = coefficients['auv']  # коефіцієнт впливу хижака на кількість жертви
+avu = coefficients['avu']  # коефіцієнт впливу жертви на кількість хижаків
+auu = coefficients['auu']  # коефіцієнт ефекту надлишкової популяції жертви
+avv = coefficients['avv']  # коефіцієнт ефекту надлишкової популяції хижаків
+D_u = coefficients['D_u']  # просторова дифузія жертви
+D_v = coefficients['D_v']  # просторова дифузія хижаків
 
 def ic_func_u(x):
     return np.abs(np.exp(-5 * ((x[:, 0:1] - 0.5) ** 2 + (x[:, 1:2] - 0.5) ** 2))) * 100000
