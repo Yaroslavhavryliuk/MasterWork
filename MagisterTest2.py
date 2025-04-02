@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from deepxde.backend import tf
 from Interface import Interface
+from scipy.interpolate import griddata
 
+grid_points = 5
 
 interface = Interface()
 coefficients = interface.run()
@@ -19,15 +21,37 @@ avu = coefficients['avu']  # коефіцієнт впливу жертви на
 auu = coefficients['auu']  # коефіцієнт ефекту надлишкової популяції жертви
 avv = coefficients['avv']  # коефіцієнт ефекту надлишкової популяції хижаків
 D_u = coefficients['D_u']  # просторова дифузія жертви
-D_v = coefficients['D_v']  # просторова дифузія хижаків
-
-def ic_func_u(x):
-    return np.abs(np.exp(-5 * ((x[:, 0:1] - 0.5) ** 2 + (x[:, 1:2] - 0.5) ** 2))) * 100000
+D_v = coefficients['D_v']  # просторова дифузія
 
 
-def ic_func_v(x):
-    return np.abs(np.exp(-5 * ((x[:, 0:1] + 0.5) ** 2 + (x[:, 1:2] + 0.5) ** 2))) * 100000
+def generate_initial_data(S, grid_points):
+    x_vals = np.linspace(-S, S, grid_points)
+    y_vals = np.linspace(-S, S, grid_points)
 
+    X, Y = np.meshgrid(x_vals, y_vals)
+
+    np.random.seed(2)
+    U = np.where((np.abs(X) == S) | (np.abs(Y) == S), 0, np.random.uniform(1, 2, X.shape))
+    V = np.where((np.abs(X) == S) | (np.abs(Y) == S), 0, np.random.uniform(1, 2, X.shape))
+
+    points = np.vstack([X.ravel(), Y.ravel()]).T
+    values_u = U.ravel()
+    values_v = V.ravel()
+
+    return points, values_u, values_v
+
+points, values_u, values_v = generate_initial_data(S, grid_points)
+
+
+def ic_func_u(x, points, values_u):
+    print(x)
+    print(points)
+    print(values_u)
+    return griddata(points, values_u, x[:, :2], method='cubic', fill_value=0)
+
+
+def ic_func_v(x, points, values_v):
+    return griddata(points, values_v, x[:, :2], method='cubic', fill_value=0)
 
 
 def pde(x, y):
@@ -38,21 +62,24 @@ def pde(x, y):
     du_yy = dde.grad.hessian(u, x, i=1, j=1)
     dv_xx = dde.grad.hessian(v, x, i=0, j=0)
     dv_yy = dde.grad.hessian(v, x, i=1, j=1)
-    eq_u = du_t - D_u * (du_xx + du_yy) - u * (a - b * v)
-    eq_v = dv_t - D_v * (dv_xx + dv_yy) - v * (-c + d * u)
+    eq_u = du_t - D_u * (du_xx + du_yy) - u * (ru - auu * u - auv * v)
+    eq_v = dv_t - D_v * (dv_xx + dv_yy) - v * (rv - avv * v - avu * u)
     return [eq_u, eq_v]
 
 
-geom = dde.geometry.Rectangle([-10, -10], [10, 10])
-timedomain = dde.geometry.TimeDomain(0, 24)
+geom = dde.geometry.Rectangle([-S, -S], [S, S])
+timedomain = dde.geometry.TimeDomain(0, T)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+
 
 # Функція перевірки умов
 def boundary(x, on_initial):
-    return on_initial
+    return 1
 
-bc_u = dde.icbc.IC(geomtime, ic_func_u, boundary, component=0)
-bc_v = dde.icbc.IC(geomtime, ic_func_v, boundary, component=1)
+
+bc_u = dde.icbc.IC(geomtime, lambda x: ic_func_u(x, points, values_u), boundary, component=0)
+bc_v = dde.icbc.IC(geomtime, lambda x: ic_func_v(x, points, values_v), boundary, component=1)
+
 
 data = dde.data.TimePDE(
     geomtime,
@@ -60,7 +87,6 @@ data = dde.data.TimePDE(
     [bc_u, bc_v],
     num_domain=400,
     num_boundary=80,
-    num_initial=40,
     num_test=10000,
 )
 
@@ -70,6 +96,10 @@ initializer = "Glorot uniform"
 net = dde.nn.FNN(layer_size, activation, initializer)
 
 model = dde.Model(data, net)
+
+print("points.shape:", points.shape)  # Має бути (grid_points**2, 2)
+print("values_u.shape:", values_u.shape)  # Має бути (grid_points**2,)
+print("values_v.shape:", values_v.shape)  # Має бути (grid_points**2,)
 
 model.compile("adam", lr=0.001)
 losshistory, train_state = model.train(iterations=10000)
@@ -113,6 +143,6 @@ def plot_solution_separate(model, times, num_points=100):
 
 
 times = []
-for i in range(25):
-    times.append(i)
+for i in range(21):
+    times.append(i*5)
 plot_solution_separate(model, times)
