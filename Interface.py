@@ -16,8 +16,8 @@ class Interface:
         self.avu = tk.DoubleVar(value=-0.2)  # коефіцієнт впливу жертви на кількість хижаків
         self.auu = tk.DoubleVar(value=0.0)   # коефіцієнт ефекту надлишкової популяції жертви
         self.avv = tk.DoubleVar(value=0.0)   # коефіцієнт ефекту надлишкової популяції хижаків
-        self.D_u = tk.DoubleVar(value=0.05)  # просторова дифузія жертви
-        self.D_v = tk.DoubleVar(value=0.05)  # просторова дифузія хижаків
+        self.D_u = tk.DoubleVar(value=0.01)  # просторова дифузія жертви
+        self.D_v = tk.DoubleVar(value=0.01)  # просторова дифузія хижаків
 
         # Створення віджетів
         self.create_widgets()
