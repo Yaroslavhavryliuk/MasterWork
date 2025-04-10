@@ -122,7 +122,6 @@ data = dde.data.TimePDE(
     num_test=10000
 )
 
-
 def output_transform(x, y):
     return tf.math.softplus(y)
 
@@ -136,15 +135,70 @@ model = dde.Model(data, net)
 # Компіляція та навчання моделі
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
-losshistory, train_state = model.train(epochs=20000) #maybe change
-
-# Дотреновування з іншим оптимізатором
 model.compile("L-BFGS")
-losshistory, train_state = model.train()
+model.restore("Test4/model_dir-20018.ckpt", verbose=1)
 
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+def plot_solution(t_val):
+    # Create a spatial grid for (x, y)
+    n_points = 50
+    x_vals = np.linspace(-S, S, n_points)
+    y_vals = np.linspace(-S, S, n_points)
+    X, Y = np.meshgrid(x_vals, y_vals)
 
-model.save("model_dir")  # Зберігає в папку model_dir
+    # Prepare the input for the model: [x, y, t]
+    t_grid = t_val * np.ones_like(X)
+    X_input = np.vstack([X.flatten(), Y.flatten(), t_grid.flatten()]).T
+
+    # Get predictions for u and v
+    y_pred = model.predict(X_input)
+    u_vals = y_pred[:, 0].reshape(X.shape)
+    v_vals = y_pred[:, 1].reshape(X.shape)
+
+    return X, Y, u_vals, v_vals
+
+# Create the figure and initial plots
+t0 = 0  # initial time
+X, Y, u_vals, v_vals = plot_solution(t0)
+
+fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+# Створення pcolormesh графіків
+pcm_u = ax1.pcolormesh(X, Y, u_vals, shading='auto', cmap='viridis')
+pcm_v = ax2.pcolormesh(X, Y, v_vals, shading='auto', cmap='viridis')
+
+# Додаємо кольорові шкали
+cbar1 = fig2.colorbar(pcm_u, ax=ax1)
+cbar2 = fig2.colorbar(pcm_v, ax=ax2)
+
+# Підписи
+ax1.set_title(f'u (Prey) at t = {t0:.2f}')
+ax2.set_title(f'v (Predator) at t = {t0:.2f}')
+for ax in (ax1, ax2):
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+
+# Слайдер
+plt.subplots_adjust(bottom=0.2)
+ax_slider2 = plt.axes([0.2, 0.05, 0.6, 0.03])
+slider2 = Slider(ax_slider2, "t", 0, T, valinit=t0, valstep=1)
 
 
+# Функція оновлення
+def update2D(val):
+    t_val = slider2.val
+    X, Y, u_vals, v_vals = plot_solution(t_val)
 
+    # Оновлюємо дані
+    pcm_u.set_array(u_vals.ravel())
+    pcm_u.set_clim(vmin=u_vals.min(), vmax=u_vals.max())
+
+    pcm_v.set_array(v_vals.ravel())
+    pcm_v.set_clim(vmin=v_vals.min(), vmax=v_vals.max())
+
+    ax1.set_title(f'u (Prey) at t = {t_val:.2f}')
+    ax2.set_title(f'v (Predator) at t = {t_val:.2f}')
+
+    fig2.canvas.draw_idle()
+
+
+slider2.on_changed(update2D)
+plt.show()

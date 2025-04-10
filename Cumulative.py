@@ -122,7 +122,6 @@ data = dde.data.TimePDE(
     num_test=10000
 )
 
-
 def output_transform(x, y):
     return tf.math.softplus(y)
 
@@ -136,15 +135,55 @@ model = dde.Model(data, net)
 # Компіляція та навчання моделі
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
-losshistory, train_state = model.train(epochs=20000) #maybe change
-
-# Дотреновування з іншим оптимізатором
 model.compile("L-BFGS")
-losshistory, train_state = model.train()
+model.restore("Test4/model_dir-20018.ckpt", verbose=1)
 
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+def plot_solution(t_val):
+    # Create a spatial grid for (x, y)
+    n_points = 50
+    x_vals = np.linspace(-S, S, n_points)
+    y_vals = np.linspace(-S, S, n_points)
+    X, Y = np.meshgrid(x_vals, y_vals)
 
-model.save("model_dir")  # Зберігає в папку model_dir
+    # Prepare the input for the model: [x, y, t]
+    t_grid = t_val * np.ones_like(X)
+    X_input = np.vstack([X.flatten(), Y.flatten(), t_grid.flatten()]).T
+
+    # Get predictions for u and v
+    y_pred = model.predict(X_input)
+    u_vals = y_pred[:, 0].reshape(X.shape)
+    v_vals = y_pred[:, 1].reshape(X.shape)
+
+    return X, Y, u_vals, v_vals
 
 
+# Кількість часових кроків
+time_points = np.linspace(0, T, 100)  # або range(T+1), якщо цілі значення
 
+u_total = []
+v_total = []
+
+for t in time_points:
+    X, Y, u_vals, v_vals = plot_solution(t)
+
+    # Обчислення інтегралу через дискретну суму по простору
+    dx = X[0, 1] - X[0, 0]
+    dy = Y[1, 0] - Y[0, 0]
+    area_element = dx * dy
+
+    u_sum = np.sum(u_vals) * area_element
+    v_sum = np.sum(v_vals) * area_element
+
+    u_total.append(u_sum)
+    v_total.append(v_sum)
+
+# Побудова графіка
+plt.figure(figsize=(10, 5))
+plt.plot(time_points, u_total, color="orange", linewidth=3, label="Жертви (U)")
+plt.plot(time_points, v_total, color="blue", linewidth=3, label="Хижаки (V)")
+plt.xlabel("Час t")
+plt.ylabel("Кумулятивна кількість")
+plt.title("Кумулятивна популяція хижаків і жертв у часі", fontsize=14)
+plt.legend()
+plt.grid(True)
+plt.show()

@@ -122,7 +122,6 @@ data = dde.data.TimePDE(
     num_test=10000
 )
 
-
 def output_transform(x, y):
     return tf.math.softplus(y)
 
@@ -136,15 +135,86 @@ model = dde.Model(data, net)
 # Компіляція та навчання моделі
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
-losshistory, train_state = model.train(epochs=20000) #maybe change
-
-# Дотреновування з іншим оптимізатором
 model.compile("L-BFGS")
-losshistory, train_state = model.train()
+model.restore("Test4/model_dir-20018.ckpt", verbose=1)
 
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
 
-model.save("model_dir")  # Зберігає в папку model_dir
+def plot_solution(t_val):
+    # Create a spatial grid for (x, y)
+    n_points = 50
+    x_vals = np.linspace(-S, S, n_points)
+    y_vals = np.linspace(-S, S, n_points)
+    X, Y = np.meshgrid(x_vals, y_vals)
+
+    # Prepare the input for the model: [x, y, t]
+    t_grid = t_val * np.ones_like(X)
+    X_input = np.vstack([X.flatten(), Y.flatten(), t_grid.flatten()]).T
+
+    # Get predictions for u and v
+    y_pred = model.predict(X_input)
+    u_vals = y_pred[:, 0].reshape(X.shape)
+    v_vals = y_pred[:, 1].reshape(X.shape)
+
+    return X, Y, u_vals, v_vals
+
+
+# Create the figure and initial plots
+t0 = 0  # initial time
+X, Y, u_vals, v_vals = plot_solution(t0)
+
+fig = plt.figure(figsize=(12, 6))
+
+# Create two 3D subplots for u and v
+ax_u = fig.add_subplot(121, projection="3d")
+ax_v = fig.add_subplot(122, projection="3d")
+
+# Initial surface plots for u (Prey) and v (Predator)
+surf_u = ax_u.plot_surface(X, Y, u_vals, cmap="viridis", edgecolor="none")
+surf_v = ax_v.plot_surface(X, Y, v_vals, cmap="plasma", edgecolor="none")
+
+ax_u.set_title("u (Prey)")
+ax_v.set_title("v (Predator)")
+for ax in (ax_u, ax_v):
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("Population")
+
+# Adjust the layout to make room for the slider
+plt.subplots_adjust(bottom=0.2)
+
+# Create slider axes and the slider widget
+ax_slider = plt.axes([0.2, 0.05, 0.6, 0.03])
+slider = Slider(ax_slider, "t", 0, T, valinit=t0, valstep=1)
+
+
+# Callback function to update the plots when the slider is moved
+def update(val):
+    t_val = slider.val
+    X, Y, u_vals, v_vals = plot_solution(t_val)
+
+    # Clear the current axes and redraw the surfaces
+    ax_u.clear()
+    ax_v.clear()
+
+    surf_u = ax_u.plot_surface(X, Y, u_vals, cmap="viridis", edgecolor="none")
+    surf_v = ax_v.plot_surface(X, Y, v_vals, cmap="plasma", edgecolor="none")
+
+    ax_u.set_title("u (Prey)")
+    ax_v.set_title("v (Predator)")
+    for ax in (ax_u, ax_v):
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("Population")
+
+    # Redraw the figure canvas
+    fig.canvas.draw_idle()
+
+
+# Connect the update function to the slider
+slider.on_changed(update)
+
+plt.show()
+
 
 
 

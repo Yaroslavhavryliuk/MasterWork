@@ -122,7 +122,6 @@ data = dde.data.TimePDE(
     num_test=10000
 )
 
-
 def output_transform(x, y):
     return tf.math.softplus(y)
 
@@ -136,15 +135,65 @@ model = dde.Model(data, net)
 # Компіляція та навчання моделі
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
-losshistory, train_state = model.train(epochs=20000) #maybe change
-
-# Дотреновування з іншим оптимізатором
 model.compile("L-BFGS")
-losshistory, train_state = model.train()
+model.restore("Test4/model_dir-20018.ckpt", verbose=1)
 
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+# Функція, яка повертає u і v в одній точці (x0, y0) протягом часу
+def get_time_series_at_point(x0, y0, times):
+    u_vals = []
+    v_vals = []
 
-model.save("model_dir")  # Зберігає в папку model_dir
+    for t in times:
+        X_input = np.array([[x0, y0, t]])
+        y_pred = model.predict(X_input)
+        u_vals.append(y_pred[0, 0])
+        v_vals.append(y_pred[0, 1])
 
+    return np.array(u_vals), np.array(v_vals)
 
+# Часовий інтервал
+times = np.linspace(0, T, 100)
 
+# Початкові координати точки
+x0_init = 0.0
+y0_init = 0.0
+
+# Початкові значення
+u_series, v_series = get_time_series_at_point(x0_init, y0_init, times)
+
+# Створення фігури
+fig, ax = plt.subplots(figsize=(10, 5))
+plt.subplots_adjust(left=0.1, bottom=0.25)
+
+line_u, = ax.plot(times, u_series, label="Жертва", color="red")
+line_v, = ax.plot(times, v_series, label="Хижак", color="blue")
+
+ax.set_xlabel("Час")
+ax.set_ylabel("Популяція")
+ax.set_title("Популяція у фіксованій точці (x, y)")
+ax.legend()
+ax.grid(True)
+
+# Додамо слайдери для x і y
+ax_x = plt.axes([0.15, 0.1, 0.7, 0.03])
+ax_y = plt.axes([0.15, 0.05, 0.7, 0.03])
+
+slider_x = Slider(ax_x, "x", -S, S, valinit=x0_init, valstep=0.1)
+slider_y = Slider(ax_y, "y", -S, S, valinit=y0_init, valstep=0.1)
+
+# Функція оновлення графіка при зміні координат
+def update(val):
+    x0 = slider_x.val
+    y0 = slider_y.val
+    u_series, v_series = get_time_series_at_point(x0, y0, times)
+
+    line_u.set_ydata(u_series)
+    line_v.set_ydata(v_series)
+    ax.relim()
+    ax.autoscale_view()
+    fig.canvas.draw_idle()
+
+slider_x.on_changed(update)
+slider_y.on_changed(update)
+
+plt.show()
