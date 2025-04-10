@@ -5,11 +5,11 @@ from mpl_toolkits.mplot3d import Axes3D
 import scipy.interpolate as interp
 from matplotlib.widgets import Slider
 from mpl_toolkits.mplot3d import Axes3D
+from deepxde.backend import tf
 from Interface import Interface
 
 interface = Interface()
 coefficients = interface.run()
-print("Received coefficients:", coefficients)
 
 
 # Параметри моделі
@@ -23,24 +23,21 @@ auv = coefficients['auv']         # вплив вовків на зайців
 avu = coefficients['avu']        # вплив зайців на вовків
 auu = coefficients['auu']         # ефект надлишкової популяції зайців
 avv = coefficients['avv']         # ефект надлишкової популяції вовків
-gridPoints = 50
+gridPoints = 10
 np.random.seed(2)
+delta = 0.01
 
 # Геометрія: простір (x,y) в прямокутнику і час t
 geom = dde.geometry.Rectangle([-S, -S], [S, S])
 timedomain = dde.geometry.TimeDomain(0, T)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-x_vals = np.linspace(-S, S, gridPoints)
-y_vals = np.linspace(-S, S, gridPoints)
-xx, yy = np.meshgrid(x_vals, y_vals)
-x_flat = xx.flatten()
-y_flat = yy.flatten()
-t_flat = np.zeros_like(x_flat)
+x = np.linspace(-S + delta, S - delta, gridPoints)
+y = np.linspace(-S + delta, S - delta, gridPoints)
+xx, yy = np.meshgrid(x, y)
+tt = np.zeros_like(xx)
+points = np.vstack([xx.ravel(), yy.ravel(), tt.ravel()]).T  # форма (N, 3)
 
-# Об'єднаємо в масив (N, 3): [t, x, y]
-initial_points = np.stack([t_flat, x_flat, y_flat], axis=1)
-print("Initial condition points:", initial_points.shape)
 
 def gen_random_interp(S,gridPoints):
 
@@ -54,31 +51,21 @@ def gen_random_interp(S,gridPoints):
     y = np.linspace(-S, S, gridPoints)  # Map matrix rows to [-S, S]
 
     interpolator = interp.RegularGridInterpolator((y, x), matrix, method="cubic", bounds_error=False, fill_value=0)
-    print(interpolator)
 
     def interpolated_function(x_query, y_query):
         points = np.array([y_query, x_query]).T  # Ensure correct shape for querying
-        print(interpolator(points))
         return interpolator(points)
 
     return interpolated_function
-
 
 
 interp_u = gen_random_interp(S,gridPoints)
 interp_v = gen_random_interp(S,gridPoints)
 
 
-def init_u(x):
-    print(x)
-    # x має форму (N, 3): [t, x, y]
-    # Початкова умова для u при t=0
-    return interp_u(x[:, 1], x[:, 2])
+values_u = interp_u(points[:, 0], points[:, 1])[:, None]
+values_v = interp_v(points[:, 0], points[:, 1])[:, None]
 
-def init_v(x):
-    # x має форму (N, 3): [t, x, y]
-    # Початкова умова для v при t=0
-    return interp_v(x[:, 1], x[:, 2])
 
 # Система PDE: визначаємо рівняння для u і v
 def pde_system(x, y):
@@ -86,13 +73,13 @@ def pde_system(x, y):
     u = y[:, 0:1]
     v = y[:, 1:2]
     # Обчислюємо похідні за допомогою функцій deepxde
-    u_t = dde.grad.jacobian(y, x, i=0, j=0)
-    u_xx = dde.grad.hessian(y, x, component=0, i=1, j=1)
-    u_yy = dde.grad.hessian(y, x, component=0, i=2, j=2)
+    u_t = dde.grad.jacobian(y, x, i=0, j=2)      # [u,v] -> i,  [x,y,t] -> j
+    u_xx = dde.grad.hessian(y, x, component=0, i=0, j=0)    # [u,v] -> component   [x,y,t] -> i    [x,y,t] -> j
+    u_yy = dde.grad.hessian(y, x, component=0, i=1, j=1)    # [u,v] -> component   [x,y,t] -> i    [x,y,t] -> j
 
-    v_t = dde.grad.jacobian(y, x, i=1, j=0)
-    v_xx = dde.grad.hessian(y, x, component=1, i=1, j=1)
-    v_yy = dde.grad.hessian(y, x, component=1, i=2, j=2)
+    v_t = dde.grad.jacobian(y, x, i=1, j=2)      # [u,v] -> i,  [x,y,t] -> j
+    v_xx = dde.grad.hessian(y, x, component=1, i=0, j=0)    # [u,v] -> component   [x,y,t] -> i    [x,y,t] -> j
+    v_yy = dde.grad.hessian(y, x, component=1, i=1, j=1)    # [u,v] -> component   [x,y,t] -> i    [x,y,t] -> j
 
     # Запис PDE, приведений до вигляду, зручному для DeepXDE:
     eq_u = u_t - Du*(u_xx + u_yy) - u*(ru - auu*u - auv*v)
@@ -104,8 +91,8 @@ bc_u = dde.DirichletBC(
     geomtime,
     lambda x: 0,
     lambda x, on_boundary: on_boundary and (
-        np.isclose(x[1], -S) or np.isclose(x[1], S) or
-        np.isclose(x[2], -S) or np.isclose(x[2], S)
+        np.isclose(x[0], -S) or np.isclose(x[0], S) or
+        np.isclose(x[1], -S) or np.isclose(x[1], S)
     ),
     component=0
 )
@@ -114,33 +101,42 @@ bc_v = dde.DirichletBC(
     geomtime,
     lambda x: 0,
     lambda x, on_boundary: on_boundary and (
-        np.isclose(x[1], -S) or np.isclose(x[1], S) or
-        np.isclose(x[2], -S) or np.isclose(x[2], S)
+        np.isclose(x[0], -S) or np.isclose(x[0], S) or
+        np.isclose(x[1], -S) or np.isclose(x[1], S)
     ),
     component=1
 )
 
 # Початкові умови при t = 0
-ic_u = dde.PointSetBC(initial_points, interp_u(x_flat, y_flat)[:, None], component=0)
-ic_v = dde.PointSetBC(initial_points, interp_v(x_flat, y_flat)[:, None], component=1)
+ic_u = dde.PointSetBC(points, values_u, component=0)
+ic_v = dde.PointSetBC(points, values_v, component=1)
+
 
 # Об'єднуємо всі умови та PDE в одну задачу
 data = dde.data.TimePDE(
     geomtime,
     pde_system,
     [bc_u, bc_v, ic_u, ic_v],
-    num_domain=2400,
-    num_boundary=320,
+    num_domain=5000,
+    num_boundary=100,
     num_test=10000
 )
 
-# Налаштування нейронної мережі (FNN)
-layer_size = [3] + [50] * 3 + [2]  # 3 входи (t,x,y) і 2 виходи (u, v) #maybe change
-net = dde.maps.FNN(layer_size, "tanh", "Glorot uniform")
+def output_transform(x, y):
+    return tf.math.softplus(y)
 
+# Налаштування нейронної мережі (FNN)
+layer_size = [3] + [128] + [64] * 3 + [32] + [2]  # 3 входи (t,x,y) і 2 виходи (u, v) #maybe change
+activation = "tanh"
+initializer = "Glorot uniform"
+net = dde.maps.FNN(layer_size, activation, initializer)
 model = dde.Model(data, net)
+
+# Компіляція та навчання моделі
 model.compile("adam", lr=0.001)
-model.restore("PointSet/model_dir-10000.ckpt", verbose=1)
+model.net.apply_output_transform(output_transform)
+model.compile("L-BFGS")
+model.restore("Test4/model_dir-20018.ckpt", verbose=1)
 
 # Функція, яка повертає u і v в одній точці (x0, y0) протягом часу
 def get_time_series_at_point(x0, y0, times):
@@ -148,7 +144,7 @@ def get_time_series_at_point(x0, y0, times):
     v_vals = []
 
     for t in times:
-        X_input = np.array([[t, x0, y0]])
+        X_input = np.array([[x0, y0, t]])
         y_pred = model.predict(X_input)
         u_vals.append(y_pred[0, 0])
         v_vals.append(y_pred[0, 1])

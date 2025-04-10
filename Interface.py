@@ -8,7 +8,7 @@ class Interface:
         self.root.geometry("400x300+500+200")
 
         # Створення змінних
-        self.T = tk.IntVar(value=100)        # час спостереження
+        self.T = tk.IntVar(value=20)        # час спостереження
         self.S = tk.IntVar(value=10)         # сторона області спостереження
         self.ru = tk.DoubleVar(value=0.2)    # коефіцієнт безумовного росту хижака
         self.rv = tk.DoubleVar(value=-0.1)   # коефіцієнт безумовного росту жертви
