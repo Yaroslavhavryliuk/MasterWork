@@ -136,7 +136,7 @@ model = dde.Model(data, net)
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
 model.compile("L-BFGS")
-model.restore("Test4/model_dir-20018.ckpt", verbose=1)
+model.restore("Test12/model_dir-20017.ckpt", verbose=1)
 
 def plot_solution(t_val):
     # Create a spatial grid for (x, y)

@@ -136,7 +136,7 @@ model = dde.Model(data, net)
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
 model.compile("L-BFGS")
-model.restore("Test4/model_dir-20018.ckpt", verbose=1)
+model.restore("Test7/model_dir-20018.ckpt", verbose=1)
 
 
 def plot_solution(t_val):
@@ -172,12 +172,12 @@ ax_v = fig.add_subplot(122, projection="3d")
 surf_u = ax_u.plot_surface(X, Y, u_vals, cmap="viridis", edgecolor="none")
 surf_v = ax_v.plot_surface(X, Y, v_vals, cmap="plasma", edgecolor="none")
 
-ax_u.set_title("u (Prey)")
-ax_v.set_title("v (Predator)")
+ax_u.set_title("u (Жертва)")
+ax_v.set_title("v (Хижак)")
 for ax in (ax_u, ax_v):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    ax.set_zlabel("Population")
+    ax.set_zlabel("Популяція")
 
 # Adjust the layout to make room for the slider
 plt.subplots_adjust(bottom=0.2)
@@ -199,12 +199,12 @@ def update(val):
     surf_u = ax_u.plot_surface(X, Y, u_vals, cmap="viridis", edgecolor="none")
     surf_v = ax_v.plot_surface(X, Y, v_vals, cmap="plasma", edgecolor="none")
 
-    ax_u.set_title("u (Prey)")
-    ax_v.set_title("v (Predator)")
+    ax_u.set_title("u (Жертва)")
+    ax_v.set_title("v (Хижак)")
     for ax in (ax_u, ax_v):
         ax.set_xlabel("x")
         ax.set_ylabel("y")
-        ax.set_zlabel("Population")
+        ax.set_zlabel("Популяція")
 
     # Redraw the figure canvas
     fig.canvas.draw_idle()

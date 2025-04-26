@@ -136,7 +136,7 @@ model = dde.Model(data, net)
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
 model.compile("L-BFGS")
-model.restore("Test4/model_dir-20018.ckpt", verbose=1)
+model.restore("Test12/model_dir-20017.ckpt", verbose=1)
 
 def plot_solution(t_val):
     # Create a spatial grid for (x, y)
@@ -170,8 +170,8 @@ cbar1 = fig2.colorbar(pcm_u, ax=ax1)
 cbar2 = fig2.colorbar(pcm_v, ax=ax2)
 
 # Підписи
-ax1.set_title(f'u (Prey) at t = {t0:.2f}')
-ax2.set_title(f'v (Predator) at t = {t0:.2f}')
+ax1.set_title(f'u (Жертва) в час t = {t0:.2f}')
+ax2.set_title(f'v (Хижак) в час t = {t0:.2f}')
 for ax in (ax1, ax2):
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -194,8 +194,8 @@ def update2D(val):
     pcm_v.set_array(v_vals.ravel())
     pcm_v.set_clim(vmin=v_vals.min(), vmax=v_vals.max())
 
-    ax1.set_title(f'u (Prey) at t = {t_val:.2f}')
-    ax2.set_title(f'v (Predator) at t = {t_val:.2f}')
+    ax1.set_title(f'u (Жертва) в час t = {t_val:.2f}')
+    ax2.set_title(f'v (Хижак) в час t = {t_val:.2f}')
 
     fig2.canvas.draw_idle()
 
