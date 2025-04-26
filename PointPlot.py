@@ -136,7 +136,7 @@ model = dde.Model(data, net)
 model.compile("adam", lr=0.001)
 model.net.apply_output_transform(output_transform)
 model.compile("L-BFGS")
-model.restore("Test4/model_dir-20018.ckpt", verbose=1)
+model.restore("Test7/model_dir-20018.ckpt", verbose=1)
 
 # Функція, яка повертає u і v в одній точці (x0, y0) протягом часу
 def get_time_series_at_point(x0, y0, times):
