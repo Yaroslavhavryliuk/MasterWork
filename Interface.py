@@ -11,13 +11,13 @@ class Interface:
         self.T = tk.IntVar(value=20)        # час спостереження
         self.S = tk.IntVar(value=10)         # сторона області спостереження
         self.ru = tk.DoubleVar(value=0.2)    # коефіцієнт безумовного росту хижака
-        self.rv = tk.DoubleVar(value=-0.1)   # коефіцієнт безумовного росту жертви
+        self.rv = tk.DoubleVar(value=-0.2)   # коефіцієнт безумовного росту жертви
         self.auv = tk.DoubleVar(value=0.2)   # коефіцієнт впливу хижака на кількість жертви
         self.avu = tk.DoubleVar(value=-0.2)  # коефіцієнт впливу жертви на кількість хижаків
         self.auu = tk.DoubleVar(value=0.0)   # коефіцієнт ефекту надлишкової популяції жертви
         self.avv = tk.DoubleVar(value=0.0)   # коефіцієнт ефекту надлишкової популяції хижаків
-        self.D_u = tk.DoubleVar(value=0.01)  # просторова дифузія жертви
-        self.D_v = tk.DoubleVar(value=0.01)  # просторова дифузія хижаків
+        self.D_u = tk.DoubleVar(value=0.1)  # просторова дифузія жертви
+        self.D_v = tk.DoubleVar(value=0.1)  # просторова дифузія хижаків
 
         # Створення віджетів
         self.create_widgets()
